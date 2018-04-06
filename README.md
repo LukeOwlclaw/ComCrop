@@ -5,12 +5,14 @@ ComCrop takes TV recording as input, passes it to comskip for commercial detecti
 
 ## Usage
 
-ComCrop [quiet] [nowait] [nonotify] infile1 infile2 infile3 ...
-or
-ComCrop [quiet] [nowait] [nonotify] *.ext
+    ComCrop [quiet] [nowait] [nonotify] infile1 infile2 infile3 ...
+    or
+    ComCrop [quiet] [nowait] [nonotify] *.ext
 
 nonotify: Only create chapter files. No waiting for user to check chapter files.
+
 nowait: No key press on exit necessary.
+
 quiet: No output if ComCrop is locked or no file to handle. (Useful to avoid cronjob mail when there was nothing to do for ComCrop.)
 
 Note: Output file type (and thus name) is configured in settings file comcrop.settings which is created on first run of ComCrop.
