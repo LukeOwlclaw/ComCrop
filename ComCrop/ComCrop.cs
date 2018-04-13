@@ -46,6 +46,7 @@ namespace ComCrop
                 process.StartInfo.FileName = exe;
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardInput = true;
+                process.PriorityClass = ProcessPriorityClass.Idle;
                 process.Start();
                 process.WaitForExit();
                 return process.ExitCode;
