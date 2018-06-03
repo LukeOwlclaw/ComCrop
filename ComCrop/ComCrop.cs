@@ -203,7 +203,7 @@ namespace ComCrop
         /// </summary>
         private void CleanUpPartFiles()
         {
-            string fileChapters = string.Format("{0}.part-{1}{2}", mBaseName, "*", mChapterExt);
+            string fileChapters = string.Format("{0}.part-{1:00}{2}", mBaseName, "*", mChapterExt);
             string fileCheckChapters = string.Format("{0}.created-{1}-lock", mBaseName, "*");
             var chapters = Directory.GetFiles(".", fileChapters);
             foreach (var chapter in chapters)
@@ -235,7 +235,7 @@ namespace ComCrop
         {
             Print("Concatenating and compressing chapters to video file without commercials...");
             CreateFile(mCreatingInProgressOutFile);
-            string fileChapters = string.Format("{0}.part-{1}{2}", mBaseName, "*", mChapterExt);
+            string fileChapters = string.Format("{0}.part-{1:00}{2}", mBaseName, "*", mChapterExt);
             var chapterFiles = Directory.GetFiles(".", fileChapters).OrderBy(f => f);
             var chaptersString = String.Join("|", chapterFiles);
             //var tempFile = mBaseName + ".temp" + Path.GetExtension(mBaseName);
@@ -383,7 +383,7 @@ namespace ComCrop
         enum CreateChapterSuccessValue { Created, AlreadyExisted, Failed, NotRelevantSkip };
         private CreateChapterSuccessValue CreateChapterFile(string mBaseName, int chapterCount, float timeStart, float duration)
         {
-            string fileChapter = string.Format("{0}.part-{1}{2}", mBaseName, chapterCount, mChapterExt);
+            string fileChapter = string.Format("{0}.part-{1:00}{2}", mBaseName, chapterCount, mChapterExt);
             // fileCheckChapter will be created after fileChapter has been created successfully.
             string fileCheckChapter = string.Format("{0}.created-{1}-lock", mBaseName, chapterCount);
             if (File.Exists(fileChapter) && new FileInfo(fileChapter).Length > 0 && File.Exists(fileCheckChapter))
