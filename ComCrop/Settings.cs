@@ -17,6 +17,8 @@ namespace ComCrop
         public string ExtensionDestination { get; set; } = @"mp4";
         [SettingAttribute(Comment = "Leave empty to allow multiple instances of ComCrop to run in parallel. If relative, lock file is placed next to executable; use absolute path to allow only one instance system-wide.")]
         public string LockFile { get; set; } = @"comcrop.lock";
+        [SettingAttribute(Comment = "Create chapter files for commercials (need to be deleted manually)")]
+        public bool CreateChaptersForCommercials { get; set; } = true;
 
         public Dictionary<string, string> StringSettings { get; private set; }
         public Dictionary<string, int> IntSettings { get; private set; }

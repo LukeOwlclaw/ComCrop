@@ -46,8 +46,8 @@ namespace ComCrop
                 process.StartInfo.FileName = exe;
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardInput = true;
-                process.PriorityClass = ProcessPriorityClass.Idle;
                 process.Start();
+                process.PriorityClass = ProcessPriorityClass.Idle;
                 process.WaitForExit();
                 return process.ExitCode;
             }
@@ -348,15 +348,33 @@ namespace ComCrop
                     if (ret == CreateChapterSuccessValue.Created)
                         anyCreated = true;
                 }
+                if (mOptions.CreateChaptersForCommercials)
+                {
+                    // create chapter for following commerical
+                    timeStart = timeEnd;
+                    duration = timeNextStart - timeEnd;
+                    if (duration > 0)
+                    {
+                        chapterCount++;
+                        var ret = CreateChapterFile(mBaseName, chapterCount, timeStart, duration);
+                        if (ret == CreateChapterSuccessValue.Failed)
+                            return CreateChapterSuccessValue.Failed;
+                        if (ret == CreateChapterSuccessValue.Created)
+                            anyCreated = true;
+                    }
+                }
                 timeStart = timeNextStart;
             }
-            // Create last chapter (end of last commercial to end of file)
-            chapterCount++;
-            var ret2 = CreateChapterFile(mBaseName, chapterCount, timeStart, -1);
-            if (ret2 == CreateChapterSuccessValue.Failed)
-                return CreateChapterSuccessValue.Failed;
-            if (ret2 == CreateChapterSuccessValue.Created)
-                anyCreated = true;
+            if (!mOptions.CreateChaptersForCommercials)
+            {
+                // Create last chapter (end of last commercial to end of file)
+                chapterCount++;
+                var ret2 = CreateChapterFile(mBaseName, chapterCount, timeStart, -1);
+                if (ret2 == CreateChapterSuccessValue.Failed)
+                    return CreateChapterSuccessValue.Failed;
+                if (ret2 == CreateChapterSuccessValue.Created)
+                    anyCreated = true;
+            }
             if (anyCreated)
                 return CreateChapterSuccessValue.Created;
             else

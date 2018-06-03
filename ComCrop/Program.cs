@@ -154,7 +154,8 @@ namespace ComCrop
                     {
                         InFile = videoFile,
                         ExtensionDestination = settings.ExtensionDestination,
-                        NoNotify = !notifyUser
+                        NoNotify = !notifyUser,
+                        CreateChaptersForCommercials = settings.CreateChaptersForCommercials
                     };
                     main.CropCommercial(options);
                     if (options.AbortRequested)
