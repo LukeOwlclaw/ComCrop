@@ -25,7 +25,8 @@ namespace ComCrop
             this.C = settings.Console;
         }
 
-        private void Print(string msg) {
+        private void Print(string msg)
+        {
             Console.BackgroundColor = ConsoleColor.Blue;
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(msg);
@@ -56,8 +57,8 @@ namespace ComCrop
                 Console.CancelKeyPress -= h;
                 C.WriteLine("====================================================================================");
                 C.WriteLine(string.Format("End of {0} with exit code {1}", exe, process.ExitCode));
-                C.WriteLine("====================================================================================");   
-            }            
+                C.WriteLine("====================================================================================");
+            }
         }
 
         protected void myHandler(object sender, ConsoleCancelEventArgs args)
@@ -87,7 +88,7 @@ namespace ComCrop
             this.mInFile = options.InFile;
             mOptions = options;
             try
-            {                
+            {
                 var inExt = Path.GetExtension(mInFile);
                 if (inExt == ".ts" && mInFile.Contains("part-"))
                 {
@@ -119,11 +120,11 @@ namespace ComCrop
                     }
                 }
 
-                    
+
                 mBaseName = Path.GetFileNameWithoutExtension(mInFile);
                 mHoldFile = mBaseName + ".part-select.delete-to-continue";
                 // Change current directory since we are working with file name (without path)
-                var inPath= Path.GetDirectoryName(mInFile);
+                var inPath = Path.GetDirectoryName(mInFile);
                 if (!string.IsNullOrWhiteSpace(inPath) && inPath != "." && Directory.GetCurrentDirectory() != inPath)
                 {
                     Debug.WriteLine(string.Format("Changing current directory to: {0}", inPath));
@@ -131,7 +132,7 @@ namespace ComCrop
                 }
                 mFileEdl = mBaseName + ".edl";
                 var outNameSupplement = "";
-                if (inExt == "."+ options.ExtensionDestination)
+                if (inExt == "." + options.ExtensionDestination)
                 {
                     outNameSupplement = "_ComCrop";
                     Debug.WriteLine(string.Format($"Detected same input extension as output extension. Append \"{outNameSupplement}\" to output file"));
@@ -185,14 +186,19 @@ namespace ComCrop
                         CleanUpFiles();
                     }
                 }
-                
+
             }
-            finally {
+            finally
+            {
                 if (success == CreateChapterSuccessValue.Failed)
                 {
                     Print(string.Format("Creating {0} failed", mOutFile));
-                } else if (success == CreateChapterSuccessValue.Created)
+                }
+                else if (success == CreateChapterSuccessValue.Created)
+                {
                     Print(string.Format("Successfully created {0}", mOutFile));
+                    ThreadPool.QueueUserWorkItem(new WaitCallback(Beep), 1);
+                }
                 else if (success == CreateChapterSuccessValue.AlreadyExisted)
                     Print(string.Format("Already existed {0}", mOutFile));
             }
@@ -246,13 +252,22 @@ namespace ComCrop
             // max_muxing_queue_size necessary as workaround for https://trac.ffmpeg.org/ticket/6375
             var videoCodec = "libx264";
             var audioCodec = "libmp3lame -b:a 128k";
+            var param = $"-hide_banner -loglevel error {stats}-nostdin -i \"concat:{chaptersString}\" "
+                + $"-map 0:v -map 0:a -c:v {videoCodec} -c:a {audioCodec} -map_metadata 0 -max_muxing_queue_size 1000 -y \"{mOutFile}\"";
             if (mChapterExt == ".mp4")
             {
+
+                // concatenating mp4 is not possible with concat command from above
+                // https://stackoverflow.com/questions/7333232/how-to-concatenate-two-mp4-files-using-ffmpeg/11175851#11175851
+
+                // use instead: ffmpeg -safe 0 -f concat -i list.txt -c copy output.mp4
+                // with list.txt: (echo file 'first file.mp4' & echo file 'second file.mp4' )>list.txt
+
                 videoCodec = "copy";
                 audioCodec = "copy";
+                throw new NotImplementedException();
             }
-                var param = $"-hide_banner -loglevel error {stats}-nostdin -i \"concat:{chaptersString}\" "
-                + $"-map 0:v -map 0:a -c:v {videoCodec} -c:a {audioCodec} -map_metadata 0 -max_muxing_queue_size 1000 -y \"{mOutFile}\"";
+
             int ret = RunCommand(mSettings.PathFfmpegExe, param);
             //-map 0:v -map 0:a -c:v libx264 -c:a libmp3lame -b:a 128k  "$outfile"
             if (ret != 0)
@@ -280,7 +295,8 @@ namespace ComCrop
                     Console.Beep(1000, 333);
                 }
             }
-            catch (System.PlatformNotSupportedException) {
+            catch (System.PlatformNotSupportedException)
+            {
                 // cannot do anything here. ignore exception.
             }
         }
@@ -289,14 +305,15 @@ namespace ComCrop
         {
             ThreadPool.QueueUserWorkItem(new WaitCallback(Beep), 3);
             CreateFile(mHoldFile);
-           
 
-                Print(string.Format("Check if all part files are wanted." + Environment.NewLine +
-                    "Delete unnecessary \"{0}.part-X"+ mChapterExt + "\" files, " + Environment.NewLine +
-                    "then delete file {1}." + Environment.NewLine +
-                    "Do not touch \"{0}.created-X-lock\" files!", mBaseName, mHoldFile));
 
-            while (File.Exists(mHoldFile)) {
+            Print(string.Format("Check if all part files are wanted." + Environment.NewLine +
+                "Delete unnecessary \"{0}.part-X" + mChapterExt + "\" files, " + Environment.NewLine +
+                "then delete file {1}." + Environment.NewLine +
+                $"Working dir: {Path.GetDirectoryName(mInFile)}", mBaseName, mHoldFile));
+
+            while (File.Exists(mHoldFile))
+            {
                 Thread.Sleep(5000);
             }
 
@@ -315,15 +332,24 @@ namespace ComCrop
 
             // Check if all chapter files have been created previously:
             bool allCreated = true;
-            for (int i = 1; i <= File.ReadLines(mFileEdl).Count(); i++)
+            int numberOfExpectedChapters = File.ReadLines(mFileEdl).Count();
+            if (mOptions.CreateChaptersForCommercials)
+                // if creating chapters also for commercials, number is doubled
+                numberOfExpectedChapters *= 2;
+            // last chapter (last row till end of file)
+            numberOfExpectedChapters++;
+
+            for (int i = 1; i <= numberOfExpectedChapters; i++)
             {
-                string fileCheckChapter = string.Format("{0}.created-{1}-lock", mBaseName, chapterCount);
-                if (!File.Exists(fileCheckChapter)) {
+                string fileCheckChapter = string.Format("{0}.created-{1}-lock", mBaseName, i);
+                if (!File.Exists(fileCheckChapter))
+                {
                     allCreated = false;
                     break;
                 }
             }
-            if (allCreated) {
+            if (allCreated)
+            {
                 Print("All blocks already exist. Skip.");
                 return CreateChapterSuccessValue.AlreadyExisted;
             }
@@ -365,16 +391,15 @@ namespace ComCrop
                 }
                 timeStart = timeNextStart;
             }
-            if (!mOptions.CreateChaptersForCommercials)
-            {
-                // Create last chapter (end of last commercial to end of file)
-                chapterCount++;
-                var ret2 = CreateChapterFile(mBaseName, chapterCount, timeStart, -1);
-                if (ret2 == CreateChapterSuccessValue.Failed)
-                    return CreateChapterSuccessValue.Failed;
-                if (ret2 == CreateChapterSuccessValue.Created)
-                    anyCreated = true;
-            }
+
+            // Create last chapter (end of last commercial to end of file)
+            chapterCount++;
+            var ret2 = CreateChapterFile(mBaseName, chapterCount, timeStart, -1);
+            if (ret2 == CreateChapterSuccessValue.Failed)
+                return CreateChapterSuccessValue.Failed;
+            if (ret2 == CreateChapterSuccessValue.Created)
+                anyCreated = true;
+
             if (anyCreated)
                 return CreateChapterSuccessValue.Created;
             else
@@ -407,7 +432,7 @@ namespace ComCrop
                 }
                 string stats = showStats ? "-stats " : "";
                 int ret = RunCommand(mSettings.PathFfmpegExe, string.Format(
-                    "-hide_banner -loglevel error "+stats+"-nostdin -i \"{0}\" -ss \"{1}\" {2}-c copy -y \"{3}\"",
+                    "-hide_banner -loglevel error " + stats + "-nostdin -i \"{0}\" -ss \"{1}\" {2}-c copy -y \"{3}\"",
                     mInFile, timeStart.ToString(CultureInfo.InvariantCulture), durationString, fileChapter));
                 if (ret != 0)
                 {
@@ -431,7 +456,7 @@ namespace ComCrop
                 Print("Scanning video, find commercials...");
                 int ret = RunCommand(mSettings.PathComskipExe, string.Format("-q --ini=\"{0}\" \"{1}\"", mSettings.PathComskipIni, mInFile));
                 // return value of comskip is not reliable (we have seen so far: Windows: 1==success, Linux: 0==success)
-                if(!File.Exists(mFileEdl))
+                if (!File.Exists(mFileEdl))
                 {
                     C.WriteLine(string.Format("Creating EDL file failed. output_edl=1 set in comskip.ini? Ret={0}. Abort.", ret));
                     return false;
