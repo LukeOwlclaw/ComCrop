@@ -250,10 +250,8 @@ namespace ComCrop
             //               chaptersString, tempFile);
             string stats = showStats ? "-stats " : "";
             // max_muxing_queue_size necessary as workaround for https://trac.ffmpeg.org/ticket/6375
-            var videoCodec = "libx264";
-            var audioCodec = "libmp3lame -b:a 128k";
-            var param = $"-hide_banner -loglevel error {stats}-nostdin -i \"concat:{chaptersString}\" "
-                + $"-map 0:v -map 0:a -c:v {videoCodec} -c:a {audioCodec} -map_metadata 0 -max_muxing_queue_size 1000 -y \"{mOutFile}\"";
+
+            int ret;
             if (mChapterExt == ".mp4")
             {
 
@@ -263,12 +261,23 @@ namespace ComCrop
                 // use instead: ffmpeg -safe 0 -f concat -i list.txt -c copy output.mp4
                 // with list.txt: (echo file 'first file.mp4' & echo file 'second file.mp4' )>list.txt
 
-                videoCodec = "copy";
-                audioCodec = "copy";
-                throw new NotImplementedException();
+                var listFile = mInFile + ".list";
+                File.WriteAllLines(listFile, chapterFiles.Select(f => $"file '{f}'"));
+                var videoCodec = "copy";
+                var audioCodec = "copy";
+                var param = $"-hide_banner -loglevel error {stats}-safe 0 -f concat -i \"{listFile}\" "
+                    + $"-c:v {videoCodec} -c:a {audioCodec} -map_metadata 0 -max_muxing_queue_size 1000 -y \"{mOutFile}\"";
+                ret = RunCommand(mSettings.PathFfmpegExe, param);
+                File.Delete(listFile);
             }
-
-            int ret = RunCommand(mSettings.PathFfmpegExe, param);
+            else
+            {
+                var videoCodec = "libx264";
+                var audioCodec = "libmp3lame -b:a 128k";
+                var param = $"-hide_banner -loglevel error {stats}-nostdin -i \"concat:{chaptersString}\" "
+                    + $"-map 0:v -map 0:a -c:v {videoCodec} -c:a {audioCodec} -map_metadata 0 -max_muxing_queue_size 1000 -y \"{mOutFile}\"";
+                ret = RunCommand(mSettings.PathFfmpegExe, param);
+            }
             //-map 0:v -map 0:a -c:v libx264 -c:a libmp3lame -b:a 128k  "$outfile"
             if (ret != 0)
             {
@@ -310,7 +319,7 @@ namespace ComCrop
             Print(string.Format("Check if all part files are wanted." + Environment.NewLine +
                 "Delete unnecessary \"{0}.part-X" + mChapterExt + "\" files, " + Environment.NewLine +
                 "then delete file {1}." + Environment.NewLine +
-                $"Working dir: {Path.GetDirectoryName(mInFile)}", mBaseName, mHoldFile));
+                $"Working dir: {Directory.GetCurrentDirectory()}", mBaseName, mHoldFile));
 
             while (File.Exists(mHoldFile))
             {
