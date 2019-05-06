@@ -96,7 +96,7 @@ namespace ComCrop
                     success = CreateChapterSuccessValue.NotRelevantSkip;
                     return;
                 }
-                else if (inExt == ".mp4")
+                else if (inExt == ".mp4" || inExt == ".avi")
                 {
                     mChapterExt = inExt;
                 }
@@ -252,7 +252,7 @@ namespace ComCrop
             // max_muxing_queue_size necessary as workaround for https://trac.ffmpeg.org/ticket/6375
 
             int ret;
-            if (mChapterExt == ".mp4")
+            if (mChapterExt == ".mp4" || mChapterExt == ".avi")
             {
 
                 // concatenating mp4 is not possible with concat command from above
